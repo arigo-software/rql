@@ -46,12 +46,12 @@ function parse(/*String|Object*/query, parameters){
 	}
 	if(query.indexOf("/") > -1){ // performance guard
 		// convert slash delimited text to arrays
-		query = query.replace(/[\+\*\$\-:\w%\._]*\/[\+\*\$\-:\w%\._\/]*/g, function(slashed){
+		query = query.replace(/[\+\*\$\-:\w%\._~]*\/[\+\*\$\-:\w%\._~\/]*/g, function(slashed){
 			return "(" + slashed.replace(/\//g, ",") + ")";
 		});
 	}
 	// convert FIQL to normalized call syntax form
-	query = query.replace(/(\([\+\*\$\-:\w%\._,]+\)|[\+\*\$\-:\w%\._]*|)([<>!]?=(?:[\w]*=)?|>|<)(\([\+\*\$\-:\w%\._,]+\)|[\+\*\$\-:\w%\._]*|)/g,
+	query = query.replace(/(\([\+\*\$\-:\w%\._~,]+\)|[\+\*\$\-:\w%\._~]*|)([<>!]?=(?:[\w]*=)?|>|<)(\([\+\*\$\-:\w%\._~,]+\)|[\+\*\$\-:\w%\._~]*|)/g,
 	                     //<---------       property        -----------><------  operator -----><----------------   value ------------------>
 			function(t, property, operator, value){
 		if(operator.length < 3){
@@ -68,7 +68,7 @@ function parse(/*String|Object*/query, parameters){
 	if(query.charAt(0)=="?"){
 		query = query.substring(1);
 	}
-	var leftoverCharacters = query.replace(/(\))|([&\|,])?([\+\*\$\-:\w%\._]*)(\(?)/g,
+	var leftoverCharacters = query.replace(/(\))|([&\|,])?([\+\*\$\-:\w%\._~]*)(\(?)/g,
 	                       //    <-closedParan->|<-delim-- propertyOrValue -----(> |
 		function(t, closedParan, delim, propertyOrValue, openParan){
 			if(delim){
@@ -175,19 +175,19 @@ exports.commonOperatorMap = {
 }
 function stringToValue(string, parameters){
 	var converter = exports.converters['default'];
-	if(string.charAt(0) === "$"){
-		var param_index = parseInt(string.substring(1)) - 1;
-		return param_index >= 0 && parameters ? parameters[param_index] : undefined;
-	}
-	if(string.indexOf(":") > -1){
-		var parts = string.split(":",2);
-		converter = exports.converters[parts[0]];
-		if(!converter){
-			throw new URIError("Unknown converter " + parts[0]);
-		}
-		string = parts[1];
-	}
-	return converter(string);
+    if(string.charAt(0) === "$"){
+        var param_index = parseInt(string.substring(1)) - 1;
+        return param_index >= 0 && parameters ? parameters[param_index] : undefined;
+    }
+    var parts = /^(\w+):(.*)$/.exec(string);
+    if (parts && parts[1]) {
+        converter = exports.converters[parts[1]];
+        if(!converter){
+            throw new URIError("Unknown converter " + parts[0]);
+        }
+        string = parts[2];
+    }
+    return converter(string);
 };
 
 var autoConverted = exports.autoConverted = {
