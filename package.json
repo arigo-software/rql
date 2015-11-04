@@ -1,9 +1,10 @@
 {
   "name": "rql",
-  "version": "0.3.3",
-  "author": "Kris Zyp",
+  "version": "0.3.3-2",
+  "author": "Kris Zyp/Simon Ruetzler",
   "contributors": [
-    "Vladimir Dronnikov <dronnikov@gmail.com>"
+    "Vladimir Dronnikov <dronnikov@gmail.com>",
+    "Simon Ruetzler <sruetzler@arigo-software.de>"
   ],
   "keywords": [
     "resource",
