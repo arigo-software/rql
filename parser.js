@@ -48,11 +48,17 @@ function parse(/*String|Object*/query, parameters){
 	}
 	if(query.indexOf("/") > -1){ // performance guard
 		// convert slash delimited text to arrays
-		query = query.replace(/'[^']+'(?:\/'[^']+')+/g, function(slashed){
-			return "(" + slashed.replace(/\//g, ",") + ")";
+		query = query.replace(/(['"])([^'"]*?\/[^'"]*?)\1|[\w%$:+*.-]*\/[\w%$:+*.\-\/]*/g
+		, function(match, quoteChar, quotedPath){
+			if(quoteChar){
+				const quotedParts = quotedPath.split("/").map(part => `${quoteChar}${part}${quoteChar}`);
+				return "(" + quotedParts.join(",") + ")";
+			}
+			return "(" + match.replace(/\//g, ",") + ")";
 		});
 	}
 	// convert FIQL to normalized call syntax form
+
 	query = query.replace(/(\([\+\*\$\-:\w%\._,]+\)|[\+\*\$\-:\w%\._]*|)([<>!]?=(?:[\w]*=)?|>|<)(\([\+\*\$\-:\w%\._,]+\)|[\+\*\$\-:\w%\._]*|)/g,
 						// <---------       property        -----------><------  operator -----><----------------   value ------------------>
 			function(t, property, operator, value){
@@ -70,12 +76,10 @@ function parse(/*String|Object*/query, parameters){
 	if(query.charAt(0)=="?"){
 		query = query.substring(1);
 	}
-	if (typeof query === 'string' && query.startsWith('"') && query.endsWith('"')) {
-		query = query.slice(1, -1);
-	  }
-	var leftoverCharacters = query.replace(/(\))|([&\|,])?('(?:\\'|[^'])*'|[\+\*\$\-:\w%\._]*)(\(?)/g,
+	var leftoverCharacters = query.replace(/(\))|([&\|,])?\s*(?:(['"])(.*?)\3|([\+\*\$\-:\w%\._]*))(\(?)?/g,
 							//   <-closedParan->|<-delim-- propertyOrValue -----(> |
-		function(t, closedParan, delim, propertyOrValue, openParan){
+		function(t, closedParan, delim, quoteChar, quotedValue, unquotedValue, openParan){
+			const propertyOrValue = quoteChar ? quotedValue : unquotedValue;
 			if(delim){
 				if(delim === "&"){
 					setConjunction("and");
