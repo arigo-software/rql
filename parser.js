@@ -48,7 +48,7 @@ function parse(/*String|Object*/query, parameters){
 	}
 	if(query.indexOf("/") > -1){ // performance guard
 		// convert slash delimited text to arrays
-		query = query.replace(/[\+\*\$\-:\w%\._]*\/[\+\*\$\-:\w%\._\/]*/g, function(slashed){
+		query = query.replace(/'[^']+'(?:\/'[^']+')+/g, function(slashed){
 			return "(" + slashed.replace(/\//g, ",") + ")";
 		});
 	}
@@ -70,7 +70,10 @@ function parse(/*String|Object*/query, parameters){
 	if(query.charAt(0)=="?"){
 		query = query.substring(1);
 	}
-	var leftoverCharacters = query.replace(/(\))|([&\|,])?([\+\*\$\-:\w%\._]*)(\(?)/g,
+	if (typeof query === 'string' && query.startsWith('"') && query.endsWith('"')) {
+		query = query.slice(1, -1);
+	  }
+	var leftoverCharacters = query.replace(/(\))|([&\|,])?('(?:\\'|[^'])*'|[\+\*\$\-:\w%\._]*)(\(?)/g,
 							//   <-closedParan->|<-delim-- propertyOrValue -----(> |
 		function(t, closedParan, delim, propertyOrValue, openParan){
 			if(delim){
@@ -98,6 +101,7 @@ function parse(/*String|Object*/query, parameters){
 				}
 			}
 			else if(propertyOrValue || delim === ','){
+				//console.log("propertyOrValue: ",propertyOrValue ,   "delim is:" , delim);
 				term.args.push(stringToValue(propertyOrValue, parameters));
 
 				// cache the last seen sort(), select(), values() and limit()
@@ -116,10 +120,15 @@ function parse(/*String|Object*/query, parameters){
 	if(term.parent){
 		throw new URIError("Opening paranthesis without a closing paranthesis");
 	}
-	if(leftoverCharacters){
-		// any extra characters left over from the replace indicates invalid syntax
-		throw new URIError("Illegal character in query string encountered " + leftoverCharacters);
+	leftoverCharacters = leftoverCharacters.trim();
+	if (leftoverCharacters.length > 0) {
+		throw new URIError("Illegal character in query string encountered: '" + leftoverCharacters + "'");
 	}
+	
+	// if(leftoverCharacters){
+	// 	// any extra characters left over from the replace indicates invalid syntax
+	// 	throw new URIError("Illegal character in query string encountered " + leftoverCharacters);
+	// }
 
 	function call(newTerm){
 		term.args.push(newTerm);
